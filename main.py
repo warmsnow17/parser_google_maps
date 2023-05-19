@@ -2,6 +2,7 @@ import os
 
 import googlemaps
 from dotenv import load_dotenv
+from loguru import logger
 import pandas as pd
 import datetime
 load_dotenv()
@@ -17,6 +18,14 @@ def search_places(api_key: str, query: str, cities: list) -> list:
         for place in places_result['results']:
             place_id = place['place_id']
             details = client.place(place_id)
+            raw_time = details['result'].get('opening_hours')
+            if raw_time is not None:
+                work_hour = ''
+                work_hour_list = raw_time.get('weekday_text')
+                for line in work_hour_list:
+                    work_hour += f'\n{line}'
+            else:
+                work_hour = ''
 
             result = {
                 "ID": place_id,
@@ -24,7 +33,7 @@ def search_places(api_key: str, query: str, cities: list) -> list:
                 "Адрес": details['result'].get('formatted_address'),
                 "Телефон": details['result'].get('formatted_phone_number'),
                 "Сайт": details['result'].get('website'),
-                "Время работы": details['result'].get('opening_hours'),
+                "Время работы": work_hour,
                 "Широта": details['result']['geometry']['location'].get('lat'),
                 "Долгота": details['result']['geometry']['location'].get('lng'),
             }
@@ -63,4 +72,4 @@ df = pd.DataFrame.from_dict(results)
 
 date = datetime.datetime.now()
 
-df.to_excel(f'{date}{query}.xlsx')
+df.to_excel(f'{date}---{query}.xlsx')
