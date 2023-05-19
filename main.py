@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 import googlemaps
@@ -13,7 +14,8 @@ load_dotenv()
 
 
 def get_largest_cities(country, username):
-    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=10&lang=ru&username={username}"
+    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=2&lang=ru&username={username}"
+    logger.warning(url)
     response = requests.get(url)
     data = response.json()
 
@@ -26,10 +28,13 @@ def get_largest_cities(country, username):
 
 def search_places(api_key: str, query: str, location: str) -> list:
     username = os.getenv('GEONAMES_USERNAME')
-    country_codes = ['RU']
+    with open('countries.json', 'r', encoding='utf-8') as file:
+        country_codes = json.load(file)
 
-    if location.upper() in country_codes:
-        cities = get_largest_cities(location, username)
+    logger.warning(country_codes)
+    if location.capitalize() in country_codes:
+        cities = get_largest_cities(country_codes[location.capitalize()],
+                                    username)
     else:
         cities = [location]
 
@@ -70,44 +75,22 @@ def search_places(api_key: str, query: str, location: str) -> list:
 
 def get_cities_and_query():
     query = input('Введите ваш запрос: ').lower()
-    raw_cities = input('Введите города через запятую: ')
-    cities = raw_cities.split(',')
-    return query, cities
+    location = input('Введите страну: ')
+    return query, location
 
 
-def get_xlsx(query, cities):
+def get_xlsx(query, location):
     api_key = os.getenv('API_KEY')
-    # query = "такси"
-    # cities = [
-    #     "Москва",
-    #     "Санкт-Петербург",
-    #     "Новосибирск",
-    #     "Екатеринбург",
-    #     "Нижний Новгород",
-    #     "Казань",
-    #     "Челябинск",
-    #     "Омск",
-    #     "Самара",
-    #     "Ростов-на-Дону",
-    #     "Уфа",
-    #     "Красноярск",
-    #     "Воронеж",
-    #     "Пермь",
-    #     "Волгоград",
-    #     "Краснодар",
-    #     "Калининград",
-    #     "Владивосток"
-    # ]
 
-    results = search_places(api_key, query, cities)
+    results = search_places(api_key, query, location)
 
     df = pd.DataFrame.from_dict(results)
 
-    date = datetime.datetime.now()
+    date = datetime.datetime.timestamp(datetime.datetime.now())
 
     df.to_excel(f'{date}---{query}.xlsx')
 
 
 if __name__ == '__main__':
-    query, cities = get_cities_and_query()
-    get_xlsx(query=query, cities=cities)
+    query, location = get_cities_and_query()
+    get_xlsx(query=query, location=location)
