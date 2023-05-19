@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 from loguru import logger
 import pandas as pd
 import datetime
+
+from tqdm import tqdm
+
+
 load_dotenv()
 
 
@@ -15,7 +19,7 @@ def search_places(api_key: str, query: str, cities: list) -> list:
     for city in cities:
         places_result = client.places(f"{query} {city}")
 
-        for place in places_result['results']:
+        for place in tqdm(places_result['results']):
             place_id = place['place_id']
             details = client.place(place_id)
             raw_time = details['result'].get('opening_hours')
@@ -43,33 +47,46 @@ def search_places(api_key: str, query: str, cities: list) -> list:
     return final_result
 
 
-api_key = os.getenv('API_KEY')
-query = "такси"
-cities = [
-    "Москва",
-    "Санкт-Петербург",
-    "Новосибирск",
-    "Екатеринбург",
-    "Нижний Новгород",
-    "Казань",
-    "Челябинск",
-    "Омск",
-    "Самара",
-    "Ростов-на-Дону",
-    "Уфа",
-    "Красноярск",
-    "Воронеж",
-    "Пермь",
-    "Волгоград",
-    "Краснодар",
-    "Калининград",
-    "Владивосток"
-]
+def get_cities_and_query():
+    query = input('Введите ваш запрос: ').lower()
+    raw_cities = input('Введите города через запятую: ')
+    cities = raw_cities.split(',')
+    return query, cities
 
-results = search_places(api_key, query, cities)
 
-df = pd.DataFrame.from_dict(results)
+def get_xlsx(query, cities):
+    api_key = os.getenv('API_KEY')
+    # query = "такси"
+    # cities = [
+    #     "Москва",
+    #     "Санкт-Петербург",
+    #     "Новосибирск",
+    #     "Екатеринбург",
+    #     "Нижний Новгород",
+    #     "Казань",
+    #     "Челябинск",
+    #     "Омск",
+    #     "Самара",
+    #     "Ростов-на-Дону",
+    #     "Уфа",
+    #     "Красноярск",
+    #     "Воронеж",
+    #     "Пермь",
+    #     "Волгоград",
+    #     "Краснодар",
+    #     "Калининград",
+    #     "Владивосток"
+    # ]
 
-date = datetime.datetime.now()
+    results = search_places(api_key, query, cities)
 
-df.to_excel(f'{date}---{query}.xlsx')
+    df = pd.DataFrame.from_dict(results)
+
+    date = datetime.datetime.now()
+
+    df.to_excel(f'{date}---{query}.xlsx')
+
+
+if __name__ == '__main__':
+    query, cities = get_cities_and_query()
+    get_xlsx(query=query, cities=cities)
