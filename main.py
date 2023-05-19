@@ -2,6 +2,8 @@ import os
 
 import googlemaps
 from dotenv import load_dotenv
+import pandas as pd
+import datetime
 load_dotenv()
 
 
@@ -57,5 +59,8 @@ cities = [
 
 results = search_places(api_key, query, cities)
 
-for result in results:
-    print(result)
+df = pd.DataFrame.from_dict(results)
+
+date = datetime.datetime.now()
+
+df.to_excel(f'{date}{query}.xlsx')
