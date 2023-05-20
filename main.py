@@ -88,7 +88,7 @@ def get_xlsx(query, location):
 
     date = datetime.datetime.timestamp(datetime.datetime.now())
 
-    df.to_excel(f'{date}---{query}.xlsx')
+    df.to_excel(f'{query}->{location}---{date}.xlsx')
 
 
 if __name__ == '__main__':
