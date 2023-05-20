@@ -1,5 +1,7 @@
 import json
 import os
+from typing import Tuple, Optional
+
 import requests
 import googlemaps
 from dotenv import load_dotenv
@@ -9,14 +11,14 @@ import datetime
 
 from tqdm import tqdm
 
-
 load_dotenv()
 
 
-def get_largest_cities(country, username):
-    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=2&lang=ru&username={username}"
+def get_largest_cities(country: str, username: str, number_cities: int) -> list:
+    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows={number_cities}&lang=ru&username={username}"
     logger.warning(url)
     response = requests.get(url)
+    print(response.status_code)
     data = response.json()
 
     cities = []
@@ -26,7 +28,7 @@ def get_largest_cities(country, username):
     return cities
 
 
-def search_places(api_key: str, query: str, location: str) -> list:
+def search_places(api_key: str, query: str, location: str, number_cities: int) -> list:
     username = os.getenv('GEONAMES_USERNAME')
     with open('countries.json', 'r', encoding='utf-8') as file:
         country_codes = json.load(file)
@@ -34,7 +36,7 @@ def search_places(api_key: str, query: str, location: str) -> list:
     logger.warning(country_codes)
     if location.capitalize() in country_codes:
         cities = get_largest_cities(country_codes[location.capitalize()],
-                                    username)
+                                    username, number_cities)
     else:
         cities = [location]
 
@@ -73,24 +75,30 @@ def search_places(api_key: str, query: str, location: str) -> list:
     return final_result
 
 
-def get_cities_and_query():
+def get_cities_and_query() -> Tuple[int, str, list]:
+    number_cities = int(input(
+        'Если в запросе вы выбираете страну, настройте количество городов для выдачи (например напишите число 10): '))
     query = input('Введите ваш запрос: ').lower()
-    location = input('Введите страну: ')
-    return query, location
+    location_input = input('Введите страну или город через запятую: ')
+    locations = [location.strip() for location in location_input.split(',')]
+
+    return number_cities, query, locations
 
 
-def get_xlsx(query, location):
+def get_xlsx(number_cities: int, query: str, locations: list) -> None:
     api_key = os.getenv('API_KEY')
 
-    results = search_places(api_key, query, location)
+    results = []
+    for location in locations:
+        results.extend(search_places(api_key, query, location, number_cities))
 
     df = pd.DataFrame.from_dict(results)
 
-    date = datetime.datetime.timestamp(datetime.datetime.now())
+    date = datetime.datetime.now().strftime('%H:%M_%d-%m-%Y')
 
-    df.to_excel(f'{query}->{location}---{date}.xlsx')
+    df.to_excel(f'{query}->{location}---{date}.xlsx', index=False)
 
 
 if __name__ == '__main__':
-    query, location = get_cities_and_query()
-    get_xlsx(query=query, location=location)
+    number_cities, query, locations = get_cities_and_query()
+    get_xlsx(number_cities=number_cities, query=query, locations=locations)
