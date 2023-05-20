@@ -10,6 +10,7 @@ import pandas as pd
 import datetime
 
 from tqdm import tqdm
+from pick import pick
 
 load_dotenv()
 
@@ -28,7 +29,7 @@ def get_largest_cities(country: str, username: str, number_cities: int) -> list:
     return cities
 
 
-def search_places(api_key: str, query: str, location: str, number_cities: int) -> list:
+def search_places(api_key: str, query: str, location: str, number_cities: int, lang: str) -> list:
     username = os.getenv('GEONAMES_USERNAME')
     with open('countries.json', 'r', encoding='utf-8') as file:
         country_codes = json.load(file)
@@ -44,7 +45,7 @@ def search_places(api_key: str, query: str, location: str, number_cities: int) -
     final_result = []
 
     for city in tqdm(cities, desc="Processing cities"):
-        places_result = client.places(f"{query} {city}", language='ru')
+        places_result = client.places(f"{query} {city}", language=lang)
 
         for place in tqdm(places_result['results']):
             place_id = place['place_id']
@@ -76,6 +77,12 @@ def search_places(api_key: str, query: str, location: str, number_cities: int) -
 
 
 def get_cities_and_query() -> Tuple[int, str, list]:
+    with open('countries.json', 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    title = 'Пожалуйста выберите язык: '
+    options = data.items()
+
+    option, index = pick(options, title, indicator='=>', default_index=2)
     number_cities = int(input(
         'Если в запросе вы выбираете страну, настройте количество городов для выдачи (например напишите число 10): '))
     query = input('Введите ваш запрос: ').lower()
