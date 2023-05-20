@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 import googlemaps
@@ -5,13 +6,16 @@ from dotenv import load_dotenv
 from loguru import logger
 import pandas as pd
 import datetime
+
 from tqdm import tqdm
+
 
 load_dotenv()
 
 
 def get_largest_cities(country, username):
-    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=20&lang=ru&username={username}"
+    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=2&lang=ru&username={username}"
+    logger.warning(url)
     response = requests.get(url)
     print(response.status_code)
     data = response.json()
@@ -25,10 +29,13 @@ def get_largest_cities(country, username):
 
 def search_places(api_key: str, query: str, location: str) -> list:
     username = os.getenv('GEONAMES_USERNAME')
-    country_codes = ['RU']
+    with open('countries.json', 'r', encoding='utf-8') as file:
+        country_codes = json.load(file)
 
-    if location.upper() in country_codes:
-        cities = get_largest_cities(location, username)
+    logger.warning(country_codes)
+    if location.capitalize() in country_codes:
+        cities = get_largest_cities(country_codes[location.capitalize()],
+                                    username)
     else:
         cities = [location]
 
@@ -38,7 +45,7 @@ def search_places(api_key: str, query: str, location: str) -> list:
     for city in tqdm(cities, desc="Processing cities"):
         places_result = client.places(f"{query} {city}", language='ru')
 
-        for place in places_result['results']:
+        for place in tqdm(places_result['results']):
             place_id = place['place_id']
             details = client.place(place_id, language='ru')
 
@@ -67,14 +74,24 @@ def search_places(api_key: str, query: str, location: str) -> list:
     return final_result
 
 
-api_key = os.getenv('API_KEY')
-query = "такси"
-location = "RU"
+def get_cities_and_query():
+    query = input('Введите ваш запрос: ').lower()
+    location = input('Введите страну: ')
+    return query, location
 
-results = search_places(api_key, query, location)
 
-df = pd.DataFrame.from_dict(results)
+def get_xlsx(query, location):
+    api_key = os.getenv('API_KEY')
 
-date = datetime.datetime.now()
+    results = search_places(api_key, query, location)
 
-df.to_excel(f'{date}---{query}.xlsx')
+    df = pd.DataFrame.from_dict(results)
+
+    date = datetime.datetime.timestamp(datetime.datetime.now())
+
+    df.to_excel(f'{date}---{query}.xlsx')
+
+
+if __name__ == '__main__':
+    query, location = get_cities_and_query()
+    get_xlsx(query=query, location=location)
