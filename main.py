@@ -11,8 +11,9 @@ load_dotenv()
 
 
 def get_largest_cities(country, username):
-    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=10&lang=ru&username={username}"
+    url = f"http://api.geonames.org/searchJSON?country={country}&featureCode=PPLA&maxRows=20&lang=ru&username={username}"
     response = requests.get(url)
+    print(response.status_code)
     data = response.json()
 
     cities = []
